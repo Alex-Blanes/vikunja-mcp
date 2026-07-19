@@ -21,6 +21,9 @@ export interface UpdateTaskArgs {
   dueDate?: string;
   priority?: number;
   done?: boolean;
+  bucketId?: number;
+  position?: number;
+  percentDone?: number;
   labels?: number[];
   assignees?: number[];
   repeatAfter?: number;
@@ -137,6 +140,9 @@ async function analyzeUpdateState(client: VikunjaClient, taskId: number, args: U
   if (currentTask.done !== undefined) previousState.done = currentTask.done;
   if (currentTask.repeat_after !== undefined) previousState.repeat_after = currentTask.repeat_after;
   if (currentTask.repeat_mode !== undefined) previousState.repeat_mode = currentTask.repeat_mode;
+  if (currentTask.bucket_id !== undefined) previousState.bucket_id = currentTask.bucket_id;
+  if (currentTask.position !== undefined) previousState.position = currentTask.position;
+  if (currentTask.percent_done !== undefined) previousState.percent_done = currentTask.percent_done;
 
   // Track which fields are being updated
   const affectedFields: string[] = [];
@@ -146,6 +152,9 @@ async function analyzeUpdateState(client: VikunjaClient, taskId: number, args: U
   if (args.dueDate !== undefined && args.dueDate !== currentTask.due_date) affectedFields.push('dueDate');
   if (args.priority !== undefined && args.priority !== currentTask.priority) affectedFields.push('priority');
   if (args.done !== undefined && args.done !== currentTask.done) affectedFields.push('done');
+  if (args.bucketId !== undefined && args.bucketId !== currentTask.bucket_id) affectedFields.push('bucketId');
+  if (args.position !== undefined && args.position !== currentTask.position) affectedFields.push('position');
+  if (args.percentDone !== undefined && args.percentDone !== currentTask.percent_done) affectedFields.push('percentDone');
   if (args.repeatAfter !== undefined && args.repeatAfter !== currentTask.repeat_after) affectedFields.push('repeatAfter');
   if (args.repeatMode !== undefined && args.repeatMode !== currentTask.repeat_mode) affectedFields.push('repeatMode');
   if (args.labels !== undefined) affectedFields.push('labels');
@@ -171,6 +180,9 @@ function buildUpdateData(currentTask: Task, args: UpdateTaskArgs): Task {
     ...(args.dueDate !== undefined && { due_date: args.dueDate }),
     ...(args.priority !== undefined && { priority: args.priority }),
     ...(args.done !== undefined && { done: args.done }),
+    ...(args.bucketId !== undefined && { bucket_id: args.bucketId }),
+    ...(args.position !== undefined && { position: args.position }),
+    ...(args.percentDone !== undefined && { percent_done: args.percentDone }),
     // Handle repeat configuration for updates
     ...(args.repeatAfter !== undefined || args.repeatMode !== undefined
       ? ((): Record<string, unknown> => {
