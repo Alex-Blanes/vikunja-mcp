@@ -346,7 +346,7 @@ describe('simple-response - Task Formatting', () => {
       expect(result).toContain('0 item(s)');
     });
 
-    it('should handle more than 10 items (should not display)', () => {
+    it('should display items beyond the old 10-item limit', () => {
       const tasks: Task[] = Array.from({ length: 15 }, (_, i) => ({
         id: i + 1,
         project_id: 1,
@@ -364,9 +364,35 @@ describe('simple-response - Task Formatting', () => {
 
       expect(result).toContain('**Results:**');
       expect(result).toContain('15 item(s)');
-      // Items should not be displayed when > 10
-      expect(result).not.toContain('### 1.');
-      expect(result).not.toContain('Task 1');
+      // A collection over 10 items must still render: dropping it silently
+      // reads as "no results" to the caller.
+      expect(result).toContain('### 1.');
+      expect(result).toContain('Task 15');
+      // Under the cap, nothing is withheld.
+      expect(result).not.toContain('not shown');
+    });
+
+    it('should cap rendering and say so when a collection exceeds the cap', () => {
+      const tasks: Task[] = Array.from({ length: 40 }, (_, i) => ({
+        id: i + 1,
+        project_id: 1,
+        title: `Task ${i + 1}`,
+        done: false,
+        repeat_after: 0
+      }));
+
+      const result = formatSuccessMessage(
+        'list-tasks',
+        'Found 40 tasks',
+        { tasks },
+        { count: 40 }
+      );
+
+      expect(result).toContain('40 item(s)');
+      expect(result).toContain('### 25.');
+      // Item 26 onwards is withheld, and the caller is told so explicitly.
+      expect(result).not.toContain('### 26.');
+      expect(result).toContain('15 more not shown');
     });
 
     it('should handle exactly 10 items (should display)', () => {

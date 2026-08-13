@@ -100,6 +100,36 @@ export function createErrorResponse(
 }
 
 /**
+ * Maximum number of collection items rendered in a single response.
+ *
+ * Rendering is capped rather than dropped: an over-cap collection previously
+ * printed only its count and silently discarded every item, which reads as
+ * "there is nothing here" instead of "there is more than fits".
+ */
+const MAX_RENDERED_ITEMS = 25;
+
+/**
+ * Render a collection as a count plus its items, capped at MAX_RENDERED_ITEMS.
+ * When items are withheld, say so explicitly and point at pagination.
+ */
+function formatCollection(collection: DataItem[]): string {
+  let content = `**Results:** ${collection.length} item(s)\n\n`;
+
+  if (collection.length === 0) {
+    return content;
+  }
+
+  content += formatDataItems(collection.slice(0, MAX_RENDERED_ITEMS));
+
+  const withheld = collection.length - MAX_RENDERED_ITEMS;
+  if (withheld > 0) {
+    content += `\n_Showing the first ${MAX_RENDERED_ITEMS} of ${collection.length}. ${withheld} more not shown — use \`page\` / \`perPage\` to page through the rest._\n\n`;
+  }
+
+  return content;
+}
+
+/**
  * Format success message in clean markdown
  * Replaces complex AORP markdown formatting
  */
@@ -124,15 +154,9 @@ export function formatSuccessMessage(
     const collection = data.tasks || data.projects || data.labels || data.users || data.items;
 
     if (collection && Array.isArray(collection)) {
-      content += `**Results:** ${collection.length} item(s)\n\n`;
-      if (collection.length > 0 && collection.length <= 10) {
-        content += formatDataItems(collection as DataItem[]);
-      }
+      content += formatCollection(collection as DataItem[]);
     } else if (Array.isArray(data)) {
-      content += `**Results:** ${data.length} item(s)\n\n`;
-      if (data.length > 0 && data.length <= 10) {
-        content += formatDataItems(data as DataItem[]);
-      }
+      content += formatCollection(data as DataItem[]);
     } else if (data && typeof data === 'object') {
       content += formatObjectData(data as Record<string, unknown>);
     }
