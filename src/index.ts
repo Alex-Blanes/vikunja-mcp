@@ -5,7 +5,8 @@
  * Main entry point for the Model Context Protocol server
  */
 
-import { createServer } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
+import { createServer, type IncomingMessage } from 'node:http';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -74,6 +75,25 @@ if (process.env.VIKUNJA_URL && process.env.VIKUNJA_API_TOKEN) {
 }
 
 /**
+ * Constant-time check of the X-API-Key header.
+ *
+ * A plain === leaks the length of the matching prefix through how long it takes
+ * to fail, which is enough to recover a key one character at a time.
+ */
+function hasValidApiKey(req: IncomingMessage, expected: string): boolean {
+  const received = req.headers['x-api-key'];
+  if (typeof received !== 'string') {
+    return false;
+  }
+
+  const a = Buffer.from(received, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  // timingSafeEqual throws on length mismatch, so the lengths are compared
+  // first. Key length is not the secret; its contents are.
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
  * Serve over Streamable HTTP instead of stdio.
  *
  * stdio requires the client to be able to spawn the process, which rules out
@@ -84,16 +104,28 @@ if (process.env.VIKUNJA_URL && process.env.VIKUNJA_API_TOKEN) {
  * worth keeping here, and it keeps the endpoint restartable without clients
  * having to renegotiate.
  *
- * ponytail: no auth on the endpoint. Bind it to a trusted interface (publish it
- * on the LAN address, not 0.0.0.0) exactly as the other MCP containers do.
+ * Requires MCP_API_KEY. A port with no authentication is reachable by anything
+ * that can route to it, and this one can create, edit and delete every task in
+ * the instance, so the server refuses to start rather than open that quietly.
  */
 async function startHttpServer(port: number): Promise<void> {
+  const apiKey = process.env.MCP_API_KEY;
+  if (!apiKey) {
+    throw new Error('MCP_HTTP_PORT is set but MCP_API_KEY is missing: refusing to listen without authentication');
+  }
+
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   await server.connect(transport);
 
   const http = createServer((req, res) => {
     if (!req.url?.startsWith('/mcp')) {
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not Found');
+      return;
+    }
+
+    if (!hasValidApiKey(req, apiKey)) {
+      logger.warn(`Rejected request without a valid API key from ${req.socket.remoteAddress ?? 'unknown'}`);
+      res.writeHead(401, { 'Content-Type': 'text/plain' }).end('Unauthorized');
       return;
     }
 
