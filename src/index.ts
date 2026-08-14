@@ -5,8 +5,11 @@
  * Main entry point for the Model Context Protocol server
  */
 
+import { createServer } from 'node:http';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import dotenv from 'dotenv';
 
 import { AuthManager } from './auth/AuthManager';
@@ -70,13 +73,61 @@ if (process.env.VIKUNJA_URL && process.env.VIKUNJA_API_TOKEN) {
   logger.info(`Using detected auth type: ${detectedAuthType}`);
 }
 
+/**
+ * Serve over Streamable HTTP instead of stdio.
+ *
+ * stdio requires the client to be able to spawn the process, which rules out
+ * callers that live in another container and have no business holding the
+ * Docker socket. Listening on a port lets them connect like any other service.
+ *
+ * Stateless: one shared transport, no session ids. There is no per-client state
+ * worth keeping here, and it keeps the endpoint restartable without clients
+ * having to renegotiate.
+ *
+ * ponytail: no auth on the endpoint. Bind it to a trusted interface (publish it
+ * on the LAN address, not 0.0.0.0) exactly as the other MCP containers do.
+ */
+async function startHttpServer(port: number): Promise<void> {
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  await server.connect(transport);
+
+  const http = createServer((req, res) => {
+    if (!req.url?.startsWith('/mcp')) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not Found');
+      return;
+    }
+
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      let body: unknown;
+      if (chunks.length > 0) {
+        try {
+          body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Invalid JSON');
+          return;
+        }
+      }
+      void transport.handleRequest(req, res, body);
+    });
+  });
+
+  await new Promise<void>((resolve) => http.listen(port, resolve));
+  logger.info(`Vikunja MCP server listening on :${port}/mcp`);
+}
+
 async function main(): Promise<void> {
   await factoryInitializationPromise;
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-
-  logger.info('Vikunja MCP server started');
+  const httpPort = process.env.MCP_HTTP_PORT;
+  if (httpPort) {
+    await startHttpServer(Number(httpPort));
+  } else {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    logger.info('Vikunja MCP server started');
+  }
   
   const config = createSecureLogConfig({
     mode: process.env.MCP_MODE,
