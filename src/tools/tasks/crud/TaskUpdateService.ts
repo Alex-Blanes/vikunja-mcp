@@ -7,6 +7,7 @@ import { MCPError, ErrorCode } from '../../../types';
 import { getClientFromContext } from '../../../client';
 import type { Task, VikunjaClient } from 'node-vikunja';
 import { validateDateString, validateId, convertRepeatConfiguration } from '../validation';
+import { sanitizeUserContent, MAX_TITLE_LENGTH } from '../../../utils/validation';
 import { isAuthenticationError } from '../../../utils/auth-error-handler';
 import { RETRY_CONFIG } from '../../../utils/retry';
 import { transformApiError, handleFetchError, handleStatusCodeError } from '../../../utils/error-handler';
@@ -175,8 +176,9 @@ function buildUpdateData(currentTask: Task, args: UpdateTaskArgs): Task {
   const updateData: Task = {
     ...currentTask,
     // Override with any provided updates
-    ...(args.title !== undefined && { title: args.title }),
-    ...(args.description !== undefined && { description: args.description }),
+    // Sanitized on the way in, as creation does: updates reach the same fields
+    ...(args.title !== undefined && { title: sanitizeUserContent(args.title, MAX_TITLE_LENGTH) }),
+    ...(args.description !== undefined && { description: sanitizeUserContent(args.description) }),
     ...(args.dueDate !== undefined && { due_date: args.dueDate }),
     ...(args.priority !== undefined && { priority: args.priority }),
     ...(args.done !== undefined && { done: args.done }),

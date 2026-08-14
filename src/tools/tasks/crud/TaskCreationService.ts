@@ -10,7 +10,7 @@ import { logger } from '../../../utils/logger';
 import { isAuthenticationError } from '../../../utils/auth-error-handler';
 import { withRetry, RETRY_CONFIG } from '../../../utils/retry';
 import { transformApiError, handleFetchError } from '../../../utils/error-handler';
-import { sanitizeString } from '../../../utils/validation';
+import { sanitizeUserContent, MAX_TITLE_LENGTH } from '../../../utils/validation';
 import { AUTH_ERROR_MESSAGES } from '../constants';
 import { validateDateString, validateId, convertRepeatConfiguration } from '../validation';
 import { createTaskResponse } from './TaskResponseFormatter';
@@ -54,10 +54,11 @@ export async function createTask(args: CreateTaskArgs): Promise<{ content: Array
       throw new MCPError(ErrorCode.VALIDATION_ERROR, 'title is required to create a task');
     }
 
-    // Sanitize and validate user inputs for comprehensive security
-    const sanitizedTitle = sanitizeString(args.title);
+    // Strip active markup from user input; ordinary prose is left as written
+    const sanitizedTitle = sanitizeUserContent(args.title, MAX_TITLE_LENGTH);
     // Preserve empty strings as they are valid descriptions
-    const sanitizedDescription = args.description !== undefined ? sanitizeString(args.description) : undefined;
+    const sanitizedDescription =
+      args.description !== undefined ? sanitizeUserContent(args.description) : undefined;
 
     // Validate optional date fields
     if (args.dueDate) {

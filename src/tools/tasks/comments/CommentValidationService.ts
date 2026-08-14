@@ -4,6 +4,7 @@
  */
 
 import { MCPError, ErrorCode } from '../../../types';
+import { sanitizeUserContent } from '../../../utils/validation';
 import { validateId } from '../validation';
 
 export interface CommentOperationInput {
@@ -30,7 +31,7 @@ export const commentValidationService = {
     };
 
     if (args.comment !== undefined) {
-      result.commentText = args.comment;
+      result.commentText = sanitizeUserContent(args.comment);
     }
 
     return result;

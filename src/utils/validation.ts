@@ -34,6 +34,17 @@ const MAX_CONDITIONS = 50;
 const MAX_STRING_LENGTH = 1000;
 
 /**
+ * Maximum length for free-text content (descriptions, comments). Vikunja
+ * imposes no limit of its own; this only guards against absurd payloads.
+ */
+export const MAX_USER_CONTENT_LENGTH = 100000;
+
+/**
+ * Maximum length for task titles. A title is a one-liner, not a document.
+ */
+export const MAX_TITLE_LENGTH = 1000;
+
+/**
  * Zod schemas for type-safe validation
  */
 const FieldSchema: z.ZodType<FilterField> = z.enum([
@@ -272,6 +283,62 @@ export function sanitizeString(value: string): string {
     .replace(/\\/g, '&#x5C;')  // Escape backslashes too
     .replace(/`/g, '&#x60;')   // Escape backticks
     .replace(/=/g, '&#x3D;')   // Escape equals signs in attributes
+}
+
+/**
+ * Sanitize free-text user content: task titles, descriptions and comments.
+ *
+ * Vikunja stores these fields as raw HTML and performs no sanitization of its
+ * own (verified against the API: script tags and event handlers are stored and
+ * served back verbatim), so the one real risk here is active markup reaching a
+ * browser. That is what this strips. Everything else is left alone: markdown,
+ * backticks, emoji, file paths and words such as "update" or "create" are
+ * ordinary prose, not attacks.
+ *
+ * Unlike sanitizeString — which backs filter values, where a rigid grammar
+ * makes outright rejection appropriate — this sanitizes instead of rejecting.
+ * Free text is not a grammar, and failing a whole call over one character is
+ * not a useful trade.
+ *
+ * ponytail: blocklist, not a real HTML parser. If untrusted third-party content
+ * ever reaches these fields, swap in sanitize-html or DOMPurify.
+ */
+export function sanitizeUserContent(
+  value: string,
+  maxLength: number = MAX_USER_CONTENT_LENGTH
+): string {
+  if (typeof value !== 'string') {
+    throw new MCPError(ErrorCode.VALIDATION_ERROR, 'Value must be a string');
+  }
+
+  if (value.length > maxLength) {
+    throw new MCPError(
+      ErrorCode.VALIDATION_ERROR,
+      `String value exceeds maximum length of ${maxLength}`
+    );
+  }
+
+  return value
+    // Code-executing elements, together with whatever they wrap
+    .replace(/<(script|style|iframe|object|embed|applet)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    // Their unclosed forms, plus tags that pull in external resources
+    .replace(/<\/?(script|style|iframe|object|embed|applet|link|meta|base)\b[^>]*>/gi, '')
+    // Inline event handlers: onclick="...", onerror='...', onload=foo()
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    // Script-bearing URL schemes, emptied only inside URL attributes, so that
+    // prose discussing javascript: survives untouched
+    .replace(
+      /\b(href|src|xlink:href|action|formaction|poster)\s*=\s*"\s*(?:(?:javascript|vbscript)\s*:|data\s*:\s*text\/html)[^"]*"/gi,
+      '$1=""'
+    )
+    .replace(
+      /\b(href|src|xlink:href|action|formaction|poster)\s*=\s*'\s*(?:(?:javascript|vbscript)\s*:|data\s*:\s*text\/html)[^']*'/gi,
+      "$1=''"
+    )
+    .replace(
+      /\b(href|src|xlink:href|action|formaction|poster)\s*=\s*(?:(?:javascript|vbscript)\s*:|data\s*:\s*text\/html)[^\s>]*/gi,
+      '$1=""'
+    );
 }
 
 /**
