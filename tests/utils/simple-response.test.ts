@@ -373,7 +373,7 @@ describe('simple-response - Task Formatting', () => {
     });
 
     it('should cap rendering and say so when a collection exceeds the cap', () => {
-      const tasks: Task[] = Array.from({ length: 40 }, (_, i) => ({
+      const tasks: Task[] = Array.from({ length: 60 }, (_, i) => ({
         id: i + 1,
         project_id: 1,
         title: `Task ${i + 1}`,
@@ -383,16 +383,16 @@ describe('simple-response - Task Formatting', () => {
 
       const result = formatSuccessMessage(
         'list-tasks',
-        'Found 40 tasks',
+        'Found 60 tasks',
         { tasks },
-        { count: 40 }
+        { count: 60 }
       );
 
-      expect(result).toContain('40 item(s)');
-      expect(result).toContain('### 25.');
-      // Item 26 onwards is withheld, and the caller is told so explicitly.
-      expect(result).not.toContain('### 26.');
-      expect(result).toContain('15 more not shown');
+      expect(result).toContain('60 item(s)');
+      expect(result).toContain('### 50.');
+      // Item 51 onwards is withheld, and the caller is told so explicitly.
+      expect(result).not.toContain('### 51.');
+      expect(result).toContain('10 more not shown');
     });
 
     it('should handle exactly 10 items (should display)', () => {

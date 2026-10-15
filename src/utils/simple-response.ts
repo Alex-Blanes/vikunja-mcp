@@ -105,8 +105,12 @@ export function createErrorResponse(
  * Rendering is capped rather than dropped: an over-cap collection previously
  * printed only its count and silently discarded every item, which reads as
  * "there is nothing here" instead of "there is more than fits".
+ *
+ * 50 matches Vikunja's default max_items_per_page, so one API page always
+ * renders whole and paging with `page` / `perPage` reaches every item, even
+ * when a filter is applied client-side to each page.
  */
-const MAX_RENDERED_ITEMS = 25;
+const MAX_RENDERED_ITEMS = 50;
 
 /**
  * Render a collection as a count plus its items, capped at MAX_RENDERED_ITEMS.
@@ -123,7 +127,7 @@ function formatCollection(collection: DataItem[]): string {
 
   const withheld = collection.length - MAX_RENDERED_ITEMS;
   if (withheld > 0) {
-    content += `\n_Showing the first ${MAX_RENDERED_ITEMS} of ${collection.length}. ${withheld} more not shown — use \`page\` / \`perPage\` to page through the rest._\n\n`;
+    content += `\n_Showing the first ${MAX_RENDERED_ITEMS} of ${collection.length}. ${withheld} more not shown — pass \`perPage\` ≤ ${MAX_RENDERED_ITEMS} and step \`page\` to see the rest._\n\n`;
   }
 
   return content;
