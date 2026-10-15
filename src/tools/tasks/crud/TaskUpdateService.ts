@@ -14,6 +14,7 @@ import { transformApiError, handleFetchError, handleStatusCodeError } from '../.
 import { AUTH_ERROR_MESSAGES } from '../constants';
 import { createTaskResponse } from './TaskResponseFormatter';
 import { formatAorpAsMarkdown } from '../../../utils/response-factory';
+import { labelBulkBody } from '../labels';
 
 export interface UpdateTaskArgs {
   id?: number;
@@ -209,9 +210,7 @@ function buildUpdateData(currentTask: Task, args: UpdateTaskArgs): Task {
  */
 async function updateTaskLabels(client: VikunjaClient, taskId: number, labelIds: number[]): Promise<void> {
   try {
-    await client.tasks.updateTaskLabels(taskId, {
-      label_ids: labelIds,
-    });
+    await client.tasks.updateTaskLabels(taskId, labelBulkBody(labelIds));
   } catch (labelError) {
     // Check if it's an auth error
     if (isAuthenticationError(labelError)) {

@@ -6,6 +6,7 @@ import type { Task, Label, User } from 'node-vikunja';
 import type { TypedVikunjaClient } from '../types/node-vikunja-extended';
 import type { ImportedTask } from '../parsers/InputParserFactory';
 import type { EntityResolutionResult } from './EntityResolver';
+import { labelBulkBody } from '../tools/tasks/labels';
 
 /**
  * Converts TaskCreationData to a Task object compatible with node-vikunja API
@@ -267,9 +268,7 @@ export class TaskCreationService {
     if (labelIds.length > 0 && createdTask.id) {
       try {
         // Try to update labels
-        const updateResult = await client.tasks.updateTaskLabels(createdTask.id, {
-          label_ids: labelIds,
-        });
+        const updateResult = await client.tasks.updateTaskLabels(createdTask.id, labelBulkBody(labelIds));
 
         // Verify the labels were actually assigned (API tokens may silently fail)
         const labelsActuallyAssigned = await this.verifyLabelAssignment(client, createdTask.id, labelIds);

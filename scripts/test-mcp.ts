@@ -346,7 +346,7 @@ async function testTaskLabels(): Promise<void> {
 
   // Apply single label
   try {
-    await api('PUT', `/tasks/${taskId}/labels/${labelId}`, { label_id: labelId });
+    await api('PUT', `/tasks/${taskId}/labels`, { label_id: labelId });
 
     // Read back and verify
     const task = await api<{ labels: Array<{ id: number }> | null }>('GET', `/tasks/${taskId}`);
@@ -362,7 +362,7 @@ async function testTaskLabels(): Promise<void> {
 
   // Apply second label
   try {
-    await api('PUT', `/tasks/${taskId}/labels/${labelId2}`, { label_id: labelId2 });
+    await api('PUT', `/tasks/${taskId}/labels`, { label_id: labelId2 });
 
     const task = await api<{ labels: Array<{ id: number }> | null }>('GET', `/tasks/${taskId}`);
     const labels = task.labels || [];

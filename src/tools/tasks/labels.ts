@@ -2,6 +2,7 @@
  * Label operations for tasks
  */
 
+import type { LabelTaskBulk } from 'node-vikunja';
 import type { MinimalTask } from '../../types';
 import { MCPError, ErrorCode } from '../../types';
 import { getClientFromContext } from '../../client';
@@ -9,6 +10,15 @@ import { isAuthenticationError } from '../../utils/auth-error-handler';
 import { withRetry, RETRY_CONFIG } from '../../utils/retry';
 import { validateId } from './validation';
 import { createSimpleResponse, formatAorpAsMarkdown } from '../../utils/response-factory';
+
+/**
+ * Body for client.tasks.updateTaskLabels (POST /tasks/{id}/labels/bulk).
+ * Vikunja reads `{ labels: [{ id }] }`; node-vikunja types it as `{ label_ids }`,
+ * which Vikunja takes as "no labels" and clears the task's labels instead.
+ */
+export function labelBulkBody(labelIds: number[]): LabelTaskBulk {
+  return { labels: labelIds.map((id) => ({ id })) } as unknown as LabelTaskBulk;
+}
 
 /**
  * Add labels to a task

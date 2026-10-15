@@ -15,6 +15,7 @@ import { AUTH_ERROR_MESSAGES } from '../constants';
 import { validateDateString, validateId, convertRepeatConfiguration } from '../validation';
 import { createTaskResponse } from './TaskResponseFormatter';
 import { formatAorpAsMarkdown } from '../../../utils/response-factory';
+import { labelBulkBody } from '../labels';
 
 export interface CreateTaskArgs {
   projectId?: number;
@@ -181,9 +182,7 @@ export async function createTask(args: CreateTaskArgs): Promise<{ content: Array
 async function addLabelsToTask(client: VikunjaClient, taskId: number, labelIds: number[]): Promise<void> {
   try {
     await withRetry(
-      () => client.tasks.updateTaskLabels(taskId, {
-        label_ids: labelIds,
-      }),
+      () => client.tasks.updateTaskLabels(taskId, labelBulkBody(labelIds)),
       {
         ...RETRY_CONFIG.AUTH_ERRORS,
         shouldRetry: (error) => isAuthenticationError(error)

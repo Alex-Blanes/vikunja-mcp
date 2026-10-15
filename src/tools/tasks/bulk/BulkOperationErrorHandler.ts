@@ -14,6 +14,7 @@ import { AUTH_ERROR_MESSAGES } from '../constants';
 import { applyFieldUpdate } from '../validation';
 import type { BulkUpdateArgs } from './BulkOperationValidator';
 import type { BatchResult } from '../../../utils/performance/batch-processor';
+import { labelBulkBody } from '../labels';
 
 /**
  * Handles fallback logic when bulk APIs fail
@@ -85,9 +86,7 @@ export const bulkOperationErrorHandler = {
 
     if (args.field === 'labels' && Array.isArray(args.value)) {
       await withRetry(
-        () => client.tasks.updateTaskLabels(taskId, {
-          label_ids: args.value as number[],
-        }),
+        () => client.tasks.updateTaskLabels(taskId, labelBulkBody(args.value as number[])),
         {
           ...RETRY_CONFIG.AUTH_ERRORS,
           shouldRetry: (error) => isAuthenticationError(error)

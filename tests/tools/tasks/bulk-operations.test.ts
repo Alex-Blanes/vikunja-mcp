@@ -524,7 +524,7 @@ describe('Bulk operations', () => {
         });
 
         expect(mockClient.tasks.updateTaskLabels).toHaveBeenCalledWith(1, {
-          label_ids: [1],
+          labels: [{ id: 1 }],
         });
         expect(mockClient.tasks.bulkAssignUsersToTask).toHaveBeenCalledWith(1, {
           user_ids: [1],

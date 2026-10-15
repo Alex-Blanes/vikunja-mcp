@@ -13,6 +13,7 @@ import { formatAorpAsMarkdown } from '../../utils/response-factory';
 import { AUTH_ERROR_MESSAGES, REPEAT_MODE_MAP } from './constants';
 import { bulkOperationValidator } from './bulk/BulkOperationValidator';
 import type { BulkUpdateArgs, BulkDeleteArgs, BulkCreateArgs, BulkCreateTaskData } from './bulk/BulkOperationValidator';
+import { labelBulkBody } from './labels';
 
 // ==================== BATCH PROCESSORS ====================
 
@@ -79,7 +80,7 @@ export async function bulkUpdateTasks(args: BulkUpdateArgs): Promise<{ content: 
           }
         }
         if (args.field === 'labels' && Array.isArray(args.value)) {
-          await withRetry(() => client.tasks.updateTaskLabels(taskId, { label_ids: args.value as number[] }), { ...RETRY_CONFIG.AUTH_ERRORS, shouldRetry: isAuthenticationError });
+          await withRetry(() => client.tasks.updateTaskLabels(taskId, labelBulkBody(args.value as number[])), { ...RETRY_CONFIG.AUTH_ERRORS, shouldRetry: isAuthenticationError });
         }
         return updated;
       });
@@ -219,7 +220,7 @@ export async function bulkCreateTasks(args: BulkCreateArgs): Promise<{ content: 
 
         try {
           const labels = t.labels;
-          if (labels && labels.length > 0) await withRetry(() => client.tasks.updateTaskLabels(createdId, { label_ids: labels }), { maxRetries: RETRY_CONFIG.AUTH_ERRORS.maxRetries ?? 3, timeout: (RETRY_CONFIG.AUTH_ERRORS.initialDelay ?? 1000) + (RETRY_CONFIG.AUTH_ERRORS.maxDelay ?? 10000), shouldRetry: isAuthenticationError });
+          if (labels && labels.length > 0) await withRetry(() => client.tasks.updateTaskLabels(createdId, labelBulkBody(labels)), { maxRetries: RETRY_CONFIG.AUTH_ERRORS.maxRetries ?? 3, timeout: (RETRY_CONFIG.AUTH_ERRORS.initialDelay ?? 1000) + (RETRY_CONFIG.AUTH_ERRORS.maxDelay ?? 10000), shouldRetry: isAuthenticationError });
           const assignees = t.assignees;
           if (assignees && assignees.length > 0) {
             try {
