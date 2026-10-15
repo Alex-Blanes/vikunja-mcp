@@ -22,6 +22,7 @@ import { readSecretEnv } from './config/secrets';
 import { ConfigurationManager } from './config/ConfigurationManager';
 import { startHttpTransport } from './transport/httpTransport';
 import { setupOidcHttpAuth } from './transport/oidcHttpAuth';
+import { setupApiKeyHttpAuth } from './transport/apiKeyHttpAuth';
 import { setupEnrollment } from './transport/enrollment';
 import { resolvePackageVersion } from './utils/version';
 
@@ -125,6 +126,13 @@ async function main(): Promise<void> {
       // once the vault exists — hence strictly after setupOidcHttpAuth. A
       // no-op when `enroll.enabled` is false.
       setupEnrollment(appConfig.enroll, appConfig.http, appConfig.auth.vikunjaUrl);
+    } else {
+      // Soft-fork: no OIDC, so fall back to a shared MCP_API_KEY when set.
+      // Without either, startHttpTransport still refuses to start.
+      const apiKey = readSecretEnv('MCP_API_KEY');
+      if (apiKey) {
+        setupApiKeyHttpAuth(apiKey);
+      }
     }
     // Stateless HTTP mode builds a fresh, fully-registered `McpServer` per
     // request (the SDK's stateless transport cannot be reused across
