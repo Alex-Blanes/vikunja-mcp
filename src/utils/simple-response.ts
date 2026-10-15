@@ -154,8 +154,12 @@ export function formatSuccessMessage(
   }
 
   if (data) {
-    // Check for known collection types first
-    const collection = data.tasks || data.projects || data.labels || data.users || data.items;
+    // Check for known collection types first. An object with its own id is a
+    // single entity, not a wrapper: a task's `labels` belong to the task and must
+    // not replace it as the result list (that hid the task and its id).
+    const collection = data.id === undefined
+      ? data.tasks || data.projects || data.labels || data.users || data.items
+      : undefined;
 
     if (collection && Array.isArray(collection)) {
       content += formatCollection(collection as DataItem[]);

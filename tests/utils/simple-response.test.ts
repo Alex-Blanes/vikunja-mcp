@@ -372,6 +372,22 @@ describe('simple-response - Task Formatting', () => {
       expect(result).not.toContain('not shown');
     });
 
+    it('should format a single task with labels as the task, not as a label list', () => {
+      // Regression: create/get/delete of a labelled task rendered its labels as
+      // the result list and dropped the task, including its id.
+      const task = {
+        id: 956,
+        title: 'Labelled task',
+        labels: [{ id: 30, title: 'incidencia' }]
+      };
+
+      const result = formatSuccessMessage('create-task', 'Task created successfully', task);
+
+      expect(result).toContain('**id:** 956');
+      expect(result).toContain('**title:** Labelled task');
+      expect(result).not.toContain('item(s)');
+    });
+
     it('should cap rendering and say so when a collection exceeds the cap', () => {
       const tasks: Task[] = Array.from({ length: 60 }, (_, i) => ({
         id: i + 1,
