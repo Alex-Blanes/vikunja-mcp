@@ -7,6 +7,7 @@ import {
   circuitBreakerRegistry,
   createCircuitBreaker,
   withCircuitBreaker,
+  withRetry,
   withTaskRetry,
   withBulkRetry,
   CIRCUIT_BREAKER_NAMES,
@@ -76,6 +77,20 @@ describe('Circuit Breaker State Sharing', () => {
       expect(allStats['test-a']).toHaveProperty('failures');
       expect(allStats['test-a']).toHaveProperty('successes');
       expect(allStats['test-a']).toHaveProperty('fires');
+    });
+  });
+
+  describe('Shared breaker runs the caller\'s operation', () => {
+    // Regression: the shared breaker used to keep the first closure, so every
+    // later call re-ran it (in production: relabelling a deleted task forever).
+    it('withRetry runs each call\'s own operation', async () => {
+      expect(await withRetry(async () => 'first')).toBe('first');
+      expect(await withRetry(async () => 'second')).toBe('second');
+    });
+
+    it('withCircuitBreaker runs each call\'s own operation under one name', async () => {
+      expect(await withCircuitBreaker(async () => 'a', 'same-name-ops')).toBe('a');
+      expect(await withCircuitBreaker(async () => 'b', 'same-name-ops')).toBe('b');
     });
   });
 

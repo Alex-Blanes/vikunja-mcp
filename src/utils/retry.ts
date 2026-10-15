@@ -99,7 +99,10 @@ export function createCircuitBreaker<T>(
 
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  const breaker = new CircuitBreaker(operation, {
+  // Breakers are shared by name, so the action must run whatever operation the
+  // current caller passes to fire(). Binding `operation` here made every later
+  // caller re-run the first caller's closure (e.g. relabel a long-deleted task).
+  const breaker = new CircuitBreaker((op?: () => Promise<T>) => (op ?? operation)(), {
     timeout: opts.timeout,
     resetTimeout: opts.resetTimeout,
     errorThresholdPercentage: opts.errorThresholdPercentage,
@@ -131,7 +134,7 @@ export async function withRetry<T>(
     try {
       // Use circuit breaker for the operation
       const breaker = createCircuitBreaker(operation, 'anonymous', opts);
-      return await breaker.fire() as Promise<T>;
+      return await breaker.fire(operation) as Promise<T>;
     } catch (error) {
       lastError = error;
 
@@ -166,7 +169,7 @@ export async function withNamedRetry<T>(
   options: RetryOptions = {}
 ): Promise<T> {
   const breaker = createCircuitBreaker(operation, name, options);
-  return breaker.fire() as Promise<T>;
+  return breaker.fire(operation) as Promise<T>;
 }
 
 /**
