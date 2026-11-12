@@ -429,3 +429,15 @@ describe('Input Sanitization Security Tests', () => {
     });
   });
 });
+
+describe('sanitizeString length limits', () => {
+  it('rejects plain strings over 1000 chars but accepts long descriptions', () => {
+    const { MAX_DESCRIPTION_LENGTH } = require('../../src/utils/validation');
+    const long = 'Acta de la reunión. '.repeat(100); // 2000 chars
+    expect(() => sanitizeString(long, 'title')).toThrow(/maximum length of 1000/);
+    expect(sanitizeString(long, 'description', MAX_DESCRIPTION_LENGTH)).toBe(long);
+    expect(() => sanitizeString('x'.repeat(MAX_DESCRIPTION_LENGTH + 1), 'description', MAX_DESCRIPTION_LENGTH)).toThrow(
+      /maximum length of 100000/,
+    );
+  });
+});

@@ -41,7 +41,7 @@ import type { AuthManager } from '../../auth/AuthManager';
 import { MCPError, ErrorCode } from '../../types';
 import { vikunjaRestRequest } from '../../utils/vikunja-rest';
 import { getTaskViaRest } from '../../utils/task-rest-transport';
-import { validateId, sanitizeString } from '../../utils/validation';
+import { validateId, sanitizeString, MAX_DESCRIPTION_LENGTH } from '../../utils/validation';
 import {
   convertRepeatConfiguration,
   validateDateString,
@@ -445,7 +445,7 @@ export async function createSubtask(
   }
   const sanitizedTitle = sanitizeString(args.title, 'title');
   const sanitizedDescription =
-    args.description !== undefined ? sanitizeString(args.description, 'description') : undefined;
+    args.description !== undefined ? sanitizeString(args.description, 'description', MAX_DESCRIPTION_LENGTH) : undefined;
 
   if (args.dueDate) {
     validateDateString(args.dueDate, 'dueDate');
@@ -682,7 +682,7 @@ export async function bulkCreateSubtasks(
       const spec: SubtaskCoreSpec = {
         title: sanitizeString(s.title, `subtasks[${index}].title`),
         ...(s.description !== undefined
-          ? { description: sanitizeString(s.description, `subtasks[${index}].description`) }
+          ? { description: sanitizeString(s.description, `subtasks[${index}].description`, MAX_DESCRIPTION_LENGTH) }
           : {}),
         ...(s.dueDate !== undefined ? { dueDate: s.dueDate } : {}),
         ...(s.startDate !== undefined ? { startDate: s.startDate } : {}),

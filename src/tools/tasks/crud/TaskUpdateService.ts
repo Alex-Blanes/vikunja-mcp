@@ -13,7 +13,7 @@ import {
   validateId,
   convertRepeatConfiguration,
 } from '../validation';
-import { sanitizeString } from '../../../utils/validation';
+import { sanitizeString, MAX_DESCRIPTION_LENGTH } from '../../../utils/validation';
 import { assertValidPercentDone, percentDoneToFraction } from '../../../utils/percent-done';
 import { isAuthenticationError } from '../../../utils/auth-error-handler';
 import { RETRY_CONFIG } from '../../../utils/retry';
@@ -110,7 +110,7 @@ export async function updateTask(
       args.title = sanitizeString(args.title, 'title');
     }
     if (args.description !== undefined) {
-      args.description = sanitizeString(args.description, 'description');
+      args.description = sanitizeString(args.description, 'description', MAX_DESCRIPTION_LENGTH);
     }
 
     // Validate dates if provided

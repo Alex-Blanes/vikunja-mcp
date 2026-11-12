@@ -10,7 +10,7 @@ import { logger } from '../../../utils/logger';
 import { isAuthenticationError } from '../../../utils/auth-error-handler';
 import { withRetry, RETRY_CONFIG } from '../../../utils/retry';
 import { transformApiError, handleFetchError } from '../../../utils/error-handler';
-import { sanitizeString } from '../../../utils/validation';
+import { sanitizeString, MAX_DESCRIPTION_LENGTH } from '../../../utils/validation';
 import { assertValidPercentDone, percentDoneToFraction } from '../../../utils/percent-done';
 import { AUTH_ERROR_MESSAGES } from '../constants';
 import {
@@ -129,7 +129,7 @@ export async function createTask(
     const sanitizedTitle = sanitizeString(args.title, 'title');
     // Preserve empty strings as they are valid descriptions
     const sanitizedDescription =
-      args.description !== undefined ? sanitizeString(args.description, 'description') : undefined;
+      args.description !== undefined ? sanitizeString(args.description, 'description', MAX_DESCRIPTION_LENGTH) : undefined;
 
     // Validate optional date fields
     if (args.dueDate) {

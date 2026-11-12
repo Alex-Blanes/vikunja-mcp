@@ -39,6 +39,12 @@ const MAX_CONDITIONS = 50;
 const MAX_STRING_LENGTH = 1000;
 
 /**
+ * Maximum length for free-text task descriptions. Vikunja itself stores them as TEXT with no
+ * limit; 1000 (MAX_STRING_LENGTH) rejected ordinary meeting notes.
+ */
+export const MAX_DESCRIPTION_LENGTH = 100_000;
+
+/**
  * Zod schemas for type-safe validation
  */
 const FieldSchema: z.ZodType<FilterField> = z.enum([
@@ -91,7 +97,11 @@ const LogicalOperatorSchema: z.ZodType<LogicalOperator> = z.enum(['&&', '||']);
  * (see issue #226: the bare "String contains potentially dangerous content" message named
  * neither the field nor the offending pattern/substring).
  */
-export function sanitizeString(value: string, fieldName?: string): string {
+export function sanitizeString(
+  value: string,
+  fieldName?: string,
+  maxLength: number = MAX_STRING_LENGTH,
+): string {
   if (typeof value !== 'string') {
     throw new MCPError(
       ErrorCode.VALIDATION_ERROR,
@@ -99,10 +109,10 @@ export function sanitizeString(value: string, fieldName?: string): string {
     );
   }
 
-  if (value.length > MAX_STRING_LENGTH) {
+  if (value.length > maxLength) {
     throw new MCPError(
       ErrorCode.VALIDATION_ERROR,
-      `${fieldName ? `${fieldName}: ` : ''}String value exceeds maximum length of ${MAX_STRING_LENGTH}`,
+      `${fieldName ? `${fieldName}: ` : ''}String value exceeds maximum length of ${maxLength}`,
     );
   }
 
